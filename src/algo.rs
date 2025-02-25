@@ -1,81 +1,126 @@
+// use std::collections::VecDeque;
+
 use crate::Process;
 
-pub fn fcfs(mut procs: Vec<Process>) -> Vec<Process> {
-    // Sort by arrival time
-    procs.sort_by_key(|p| p.arrival_time);
+pub fn srt(mut procs: Vec<Process>) -> Vec<Process> {
+    let mut current_time: u32 = 0;
+    let n = procs.len();
+    let mut completed = 0;
 
-    let mut current_time = 0;
-    for p in procs.iter_mut() {
-        if current_time < p.arrival_time {
-            current_time = p.arrival_time;
+    while completed < n {
+        // Find the process with the smallest remaining time that's already arrived.
+        let mut idx = None;
+        let mut min_remaining = u32::MAX;
+        for (i, p) in procs.iter().enumerate() {
+            if p.arrival_time <= current_time && p.remaining_time > 0 {
+                if p.remaining_time < min_remaining {
+                    min_remaining = p.remaining_time;
+                    idx = Some(i);
+                }
+            }
         }
-        p.start_time = Some(current_time);
-        p.response_time = Some(current_time - p.arrival_time); // first time CPU allocated
-        current_time += p.burst_time;
-        p.completion_time = Some(current_time);
+
+        if let Some(i) = idx {
+            // Record first execution time.
+            if procs[i].start_time.is_none() {
+                procs[i].start_time = Some(current_time);
+                procs[i].response_time = Some(current_time - procs[i].arrival_time);
+            }
+            // Execute for one time unit.
+            procs[i].remaining_time -= 1;
+            current_time += 1;
+            if procs[i].remaining_time == 0 {
+                procs[i].completion_time = Some(current_time);
+                completed += 1;
+            }
+        } else {
+            // If no process is ready, move forward in time.
+            current_time += 1;
+        }
     }
     procs
 }
 
 
-pub fn print_results(alg_name: &str,mut procs:&[Process]) {
-
-    let mut new_proc = procs.to_vec();
-
-    for p in new_proc.iter_mut() {
-        let ct = p.completion_time.unwrap();
-        let at = p.arrival_time;
-        let bt = p.burst_time;
-
-        p.turnaround_time = Some(ct - at);
-        p.waiting_time = Some(p.turnaround_time.unwrap() - bt);
-        // If response_time wasn't set (shouldn't happen if scheduling is correct), default to waiting_time
-        p.response_time.get_or_insert(p.waiting_time.unwrap());
-        
-    }
-
-    let n = procs.len() as f64;
-    let mut total_wait = 0;
-    let mut total_tat = 0;
-    let mut total_resp = 0;
-    let mut finish_time = 0;
 
 
 
-    println!("{} Results", alg_name);
-    println!("_________________________________________________________");
-    println!("ID | Start | Completion | Waiting | Turnaround | Response");
+pub fn sjf(mut procs: Vec<Process>) -> Vec<Process> {
+    let mut current_time = 0;
+    let mut completed = 0;
+    let n = procs.len();
 
-    for p in new_proc {
+    // We’ll track which processes are done
+    let mut is_done = vec![false; n];
 
-        let w = p.waiting_time.unwrap_or_else(|| { println!("no waiting time for {}", p.id); 0 });
-        let t = p.turnaround_time.unwrap_or_else(|| { println!("no turn around time for {}", p.id); 0 });
-        let r = p.response_time.unwrap_or_else(|| { println!("no response time for {}", p.id); 0 });
-        let s = p.start_time.unwrap_or_else(|| { println!("no start time for {}", p.id); 0 });
-        let c = p.completion_time.unwrap_or_else(|| { println!("no completion time for {}", p.id); 0 });
-        total_wait += w;
-        total_tat += t;
-        total_resp += r;
-        if c > finish_time {
-            finish_time = c;
+    while completed < n {
+        // Pick process with smallest burst_time among those arrived & not done
+        let mut idx = None;
+        let mut min_bt = u32::MAX;
+
+        for i in 0..n {
+            if !is_done[i] && procs[i].arrival_time <= current_time {
+                if procs[i].burst_time < min_bt {
+                    min_bt = procs[i].burst_time;
+                    idx = Some(i);
+                }
+            }
         }
-        println!(
-            "p{} | {:5} | {:10} | {:7} | {:10} | {:8}",
-            p.id, s, c, w, t, r
-        );
 
+        if let Some(i) = idx {
+            // Schedule this process
+            let start = current_time;
+            if procs[i].start_time.is_none() {
+                procs[i].start_time = Some(start);
+                procs[i].response_time = Some(start - procs[i].arrival_time);
+            }
+            current_time += procs[i].burst_time;
+            procs[i].completion_time = Some(current_time);
+            is_done[i] = true;
+            completed += 1;
+        } else {
+            // No process arrived yet, jump in time
+            current_time += 1;
+        }
     }
-    println!(
-        "Avg Waiting: {:.2}, Avg Turnaround: {:.2}, Avg Response: {:.2}",
-        total_wait as f64 / n,
-        total_tat as f64 / n,
-        total_resp as f64 / n
-    );
-
-
-    let cpu_utilization = 100.0 * (finish_time as f64 / finish_time as f64);
-    println!("CPU Utilization: {:.2}%", cpu_utilization);
-
-    let throughput = n / finish_time as f64;
-    println!("Throughput: {:.2} processes/unit time\n", throughput);
+    procs
 }
+
+/// Earliest Deadline First (non-preemptive, using 'priority_or_deadline' as the deadline)
+pub fn edf(mut procs: Vec<Process>) -> Vec<Process> {
+    let mut current_time = 0;
+    let mut completed = 0;
+    let n = procs.len();
+    let mut is_done = vec![false; n];
+
+    while completed < n {
+        let mut idx = None;
+        let mut min_deadline = u32::MAX;
+
+        for i in 0..n {
+            if !is_done[i] && procs[i].arrival_time <= current_time {
+                // pick process with earliest deadline
+                if procs[i].priority_or_deadline.unwrap() < min_deadline {
+                    min_deadline = procs[i].priority_or_deadline.unwrap();
+                    idx = Some(i);
+                }
+            }
+        }
+
+        if let Some(i) = idx {
+            let start = current_time;
+            if procs[i].start_time.is_none() {
+                procs[i].start_time = Some(start);
+                procs[i].response_time = Some(start - procs[i].arrival_time);
+            }
+            current_time += procs[i].burst_time;
+            procs[i].completion_time = Some(current_time);
+            is_done[i] = true;
+            completed += 1;
+        } else {
+            current_time += 1;
+        }
+    }
+    procs
+}
+
