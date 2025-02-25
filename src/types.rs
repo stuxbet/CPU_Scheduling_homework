@@ -6,7 +6,7 @@ pub struct Process {
     pub arrival_time: u32,
     pub burst_time: u32,
     pub remaining_time: u32,
-    pub priority_or_deadline: u32, // For EDF
+    pub priority_or_deadline: Option<u32>, // For EDF
     pub start_time: Option<u32>,
     pub completion_time: Option<u32>,
     pub response_time: Option<u32>,
@@ -15,7 +15,7 @@ pub struct Process {
 }
 
 impl Process {
-    pub fn new(id: usize, arrival_time: u32, burst_time: u32, priority_or_deadline: u32) -> Self {
+    pub fn new(id: usize, arrival_time: u32, burst_time: u32, priority_or_deadline: Option<u32>) -> Self {
         Process {
             id,
             arrival_time,

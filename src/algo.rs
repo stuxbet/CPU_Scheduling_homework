@@ -14,26 +14,46 @@ pub fn fcfs(mut procs: Vec<Process>) -> Vec<Process> {
         current_time += p.burst_time;
         p.completion_time = Some(current_time);
     }
-    //finalize_metrics(&mut procs);
     procs
 }
 
 
-pub fn print_results(alg_name: &str, procs: &[Process]) {
+pub fn print_results(alg_name: &str,mut procs:&[Process]) {
+
+    let mut new_proc = procs.to_vec();
+
+
+
+    for p in new_proc.iter_mut() {
+        let ct = p.completion_time.unwrap();
+        let at = p.arrival_time;
+        let bt = p.burst_time;
+
+        p.turnaround_time = Some(ct - at);
+        p.waiting_time = Some(p.turnaround_time.unwrap() - bt);
+        // If response_time wasn't set (shouldn't happen if scheduling is correct), default to waiting_time
+        p.response_time.get_or_insert(p.waiting_time.unwrap());
+        
+    }
+
     let n = procs.len() as f64;
     let mut total_wait = 0;
     let mut total_tat = 0;
     let mut total_resp = 0;
     let mut finish_time = 0;
 
-    println!("=== {} RESULTS ===", alg_name);
+
+
+    println!("|{} Results|", alg_name);
     println!("ID | Start | Completion | Waiting | Turnaround | Response");
-    for p in procs {
-        let w = p.waiting_time.unwrap();
-        let t = p.turnaround_time.unwrap();
-        let r = p.response_time.unwrap();
-        let s = p.start_time.unwrap();
-        let c = p.completion_time.unwrap();
+
+    for p in new_proc {
+
+        let w = p.waiting_time.unwrap_or_else(|| { println!("no waiting time for {}", p.id); 0 });
+        let t = p.turnaround_time.unwrap_or_else(|| { println!("no turn around time for {}", p.id); 0 });
+        let r = p.response_time.unwrap_or_else(|| { println!("no response time for {}", p.id); 0 });
+        let s = p.start_time.unwrap_or_else(|| { println!("no start time for {}", p.id); 0 });
+        let c = p.completion_time.unwrap_or_else(|| { println!("no completion time for {}", p.id); 0 });
         total_wait += w;
         total_tat += t;
         total_resp += r;
@@ -44,6 +64,7 @@ pub fn print_results(alg_name: &str, procs: &[Process]) {
             "p{} | {:5} | {:10} | {:7} | {:10} | {:8}",
             p.id, s, c, w, t, r
         );
+
     }
     println!(
         "Avg Waiting: {:.2}, Avg Turnaround: {:.2}, Avg Response: {:.2}",
@@ -52,16 +73,10 @@ pub fn print_results(alg_name: &str, procs: &[Process]) {
         total_resp as f64 / n
     );
 
-    // CPU Utilization = (finish_time - idle_time) / finish_time
-    // Here we assume no forced idle time if processes are continuously available
-    // (except the times we jump if no process is available).
-    // For simplicity, we assume minimal idle. This is not always exact.
-    // We'll do a naive approach assuming CPU busy from 0 to finish_time if at least one process arrived at 0.
-    // Adapt if your assignment requires a more precise approach.
-    let cpu_utilization = 100.0 * (finish_time as f64 / finish_time as f64);
-    println!("CPU Utilization ~ {:.2}%", cpu_utilization);
 
-    // Throughput = # of processes / total_time
+    let cpu_utilization = 100.0 * (finish_time as f64 / finish_time as f64);
+    println!("CPU Utilization: {:.2}%", cpu_utilization);
+
     let throughput = n / finish_time as f64;
     println!("Throughput: {:.2} processes/unit time\n", throughput);
 }
