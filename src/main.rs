@@ -13,7 +13,6 @@ fn main() {
         Process::new(5, 8, 4, None),
     ];
 
-    // FCFS
     let fcfs_res = fcfs(processes.clone());
     print_results("FCFS", &fcfs_res);
 

@@ -22,8 +22,6 @@ pub fn print_results(alg_name: &str,mut procs:&[Process]) {
 
     let mut new_proc = procs.to_vec();
 
-
-
     for p in new_proc.iter_mut() {
         let ct = p.completion_time.unwrap();
         let at = p.arrival_time;
@@ -44,7 +42,8 @@ pub fn print_results(alg_name: &str,mut procs:&[Process]) {
 
 
 
-    println!("|{} Results|", alg_name);
+    println!("{} Results", alg_name);
+    println!("_________________________________________________________");
     println!("ID | Start | Completion | Waiting | Turnaround | Response");
 
     for p in new_proc {
