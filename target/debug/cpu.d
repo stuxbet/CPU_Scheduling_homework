@@ -1,1 +1,1 @@
-C:\Users\LukeMalcom\DEV\CPU_Scheduling_homework\target\debug\cpu.exe: C:\Users\LukeMalcom\DEV\CPU_Scheduling_homework\src\main.rs
+C:\Users\LukeMalcom\DEV\CPU_Scheduling_homework\target\debug\cpu.exe: C:\Users\LukeMalcom\DEV\CPU_Scheduling_homework\src\algo.rs C:\Users\LukeMalcom\DEV\CPU_Scheduling_homework\src\main.rs C:\Users\LukeMalcom\DEV\CPU_Scheduling_homework\src\types.rs
